@@ -433,12 +433,20 @@ class FacePoseDetector:
 
         movable_window = MovableWindow()
 
+        window_name = 'Face Pose Detection - Press Q to Exit'
+        cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
+
+        frame_count = 0
+        check_interval = 30  # 每30帧检查一次窗口状态
+
         while cap.isOpened():
             success, image = cap.read()
             if not success:
                 continue
 
             image = cv2.flip(image, 1)
+
+            frame_count += 1
 
             h_offset, face_center_x, nose_x, v_ratio, landmarks = self.calculate_metrics(image)
 
@@ -450,11 +458,30 @@ class FacePoseDetector:
 
             image = self.draw_visualization(image, h_offset, face_center_x, nose_x, v_ratio, direction, landmarks)
 
-            cv2.imshow('Face Pose Detection', image)
+            cv2.imshow(window_name, image)
+
+            if frame_count % check_interval == 0:
+                try:
+                    window_prop = cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE)
+                    if window_prop < 1:
+                        print("\nMain window closed. Exiting...")
+                        cap.release()
+                        cv2.destroyAllWindows()
+                        self.detector.close()
+                        movable_window.destroy()
+                        print("System closed.")
+                        sys.exit(0)
+                except Exception:
+                    print("\nMain window closed. Exiting...")
+                    cap.release()
+                    cv2.destroyAllWindows()
+                    self.detector.close()
+                    movable_window.destroy()
+                    print("System closed.")
+                    sys.exit(0)            
 
             movable_window.update()
 
-            # 按键处理
             key = cv2.waitKey(5) & 0xFF
             if key == ord('q') or key == ord('Q'):
                 print("\nExiting...")
